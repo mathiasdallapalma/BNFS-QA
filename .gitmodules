@@ -1,0 +1,3 @@
+[submodule "BNSL-QA-python"]
+	path = BNSL-QA-python
+	url = https://github.com/massimo-rizzoli/BNSL-QA-python
