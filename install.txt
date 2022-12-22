@@ -1,0 +1,9 @@
+
+eventualmente update di pip  e dirscorso dell'env
+
+pip install -r requirements.txt
+
+*TODO vedere se aggiungere pgmpy e numpy ai requirements.txt
+
+
+config aggiungere search algorithm di bnlearn
