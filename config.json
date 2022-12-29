@@ -1,20 +1,20 @@
 {
     "data_path":"MOCK_DATA.csv",
-    "skip_discretization":false,
+    "discretize":true,
     "output_dir": "results",
     "random_state": 0,
 
     
     "labels":"2,3,4,7",
-    "n_bins":4,
+    "n_bins":3,
     "discretizer_strategy":"uniform",
     "keep_file":true,
 
 
-    "divide_et_impera":true,
-    "dei_n":4,
+    "divide_et_impera":false,
+    "dei_n":5,
 
-    "dataset_path":"",
+    "bnsl_data_path":"as",
     "strategy":"QA",
     "QA_kwargs": {
       "reads": 10000,

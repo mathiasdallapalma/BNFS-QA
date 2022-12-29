@@ -23,7 +23,7 @@ def main():
     else:
         log.basicConfig(format="%(levelname)s: %(message)s")
 
-    if not config["skip_discretization"]:
+    if config["discretize"]:
         disc_df=discretize.main(config,df)
 
     bn=bnsl.main(config,disc_df)
