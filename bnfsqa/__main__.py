@@ -1,6 +1,7 @@
 #import exact_solver, dwave_solver
 from utils import common 
 from bnfsqa.discretize import discretize
+from bnfsqa.bnsl import bnsl
 
 
 import argparse
@@ -25,6 +26,7 @@ def main():
     if not config["skip_discretization"]:
         disc_df=discretize.main(config,df)
 
+    bn=bnsl.main(config,disc_df)
 
 
 
