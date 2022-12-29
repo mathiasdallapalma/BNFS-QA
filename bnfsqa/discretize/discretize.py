@@ -1,10 +1,10 @@
 import logging as log
 from sklearn import preprocessing
 import pandas as pd
-
+import numpy as np
+from utils import common
 
 def main(config,df):
-
     """Discretize the input dataset
     Parameters
     ----------
@@ -17,26 +17,29 @@ def main(config,df):
     pd.DataFrame
         Discretized dataset.
     """
-    #config=args[0]
-    #df=args[1]
+
     dataset_path = config["data_path"]
     output_dir = config["output_dir"]
     labels = list(map(int, config["labels"].split(',')))
     n_bins = int(config["n_bins"])
     discretizer_strategy = config["discretizer_strategy"]
-    random_state = int(config["random_state"])
-   
     keep_file =  bool(config["keep_file"])
 
-    df_disc=discretize(df,labels,n_bins,discretizer_strategy,random_state)
+    df_disc=discretize(df,labels,n_bins,discretizer_strategy)
 
+
+    dataset_name=dataset_path.split('.')[0]
+    output_path=output_dir+'/'+dataset_name+'_'+str(n_bins)+"b.txt"
+    
+    common.save_txt(df_disc,dataset_name,output_path)
 
     if(keep_file):
-        save_csv(df_disc,dataset_path,output_dir,n_bins)
+        save_csv(df_disc,dataset_name,output_dir,n_bins)
+        
     
     return df_disc
 
-def discretize(df,labels,n_bins,discretizer_strategy,random_state):
+def discretize(df,labels,n_bins,discretizer_strategy):
     """Discretize the input dataframe and check for possible errors (throw wornings)
     Parameters
     ----------
@@ -55,14 +58,16 @@ def discretize(df,labels,n_bins,discretizer_strategy,random_state):
     pd.DataFrame
         Discretized dataset.
     """
+
+    global categorical_columns,numerical_columns
+
     columns=df.columns
     categorical_columns=[columns[i] for i in labels]
     numerical_columns=list(set(columns)-set(categorical_columns))
 
-
     df[categorical_columns]=df[categorical_columns].apply(preprocessing.LabelEncoder().fit_transform)
     
-    discretizer=preprocessing.KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy=discretizer_strategy,random_state=random_state)
+    discretizer=preprocessing.KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy=discretizer_strategy)
     df[numerical_columns]=pd.DataFrame(discretizer.fit_transform(df[numerical_columns]), columns = numerical_columns, dtype=int) #funziona
 
     log.info("Discretization completed")
@@ -71,7 +76,7 @@ def discretize(df,labels,n_bins,discretizer_strategy,random_state):
     
     return df 
 
-def save_csv(df_disc,dataset_path,output_dir,n_bins):
+def save_csv(df_disc,dataset_name,output_dir,n_bins,):
     """Save the discretize dataframe in a new csv file
     Parameters
     ----------
@@ -89,9 +94,9 @@ def save_csv(df_disc,dataset_path,output_dir,n_bins):
     None
     """
 
-    temp=output_dir+'/'+dataset_path.split('.')[0]+'_'+str(n_bins)+"b.csv"
-    df_disc.to_csv(temp)
-    log.info("Discretized dataset saved in : "+temp)
+    output_path=output_dir+'/'+dataset_name+'_'+str(n_bins)+"b.csv"
+    df_disc.to_csv(output_path,index=False)
+    log.info("Discretized dataset saved in : "+output_path)
 
 def check_for_errors(df_disc,n_bins):
     """Check the discretized dataframe for errors
@@ -106,11 +111,15 @@ def check_for_errors(df_disc,n_bins):
     -------
     None
     """
-    print("asd")
 
-    for feature in df_disc:
-        col=df_disc[feature]
-        print(type(col))
-        #TODO continua qua
+    for feature in df_disc[numerical_columns]:
+        n = len(pd.unique(df_disc[feature]))
+        if(n<n_bins):
+            log.warn("number of unique values in feature: \"%s\" after disctetization is %d.(number of bins is %d)\n Usually that means there are some outliers values."%(feature,n,n_bins))
+    
+    for feature in df_disc[categorical_columns]:
+        n = len(pd.unique(df_disc[feature]))
+        if(n>n_bins):
+            log.warn("number of unique values in feature: \"%s\" after disctetization is %d.(number of bins is %d)\n That maight be too hight, please consider another type of categorical encoding."%(feature,n,n_bins))
 
     

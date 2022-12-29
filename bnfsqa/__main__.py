@@ -16,15 +16,16 @@ def main():
 
     config,df = common.load_config_and_input_data(args.config_file)
     
-
     if config["verbose"]:
-        log.basicConfig(format="%(levelname)s: %(message)s", level=log.DEBUG)
+        log.getLogger().setLevel(log.INFO)
         log.info("Verbose output.")
     else:
         log.basicConfig(format="%(levelname)s: %(message)s")
 
-    disc_df=discretize.main(config,df)
-    print(disc_df)
+    if not config["skip_discretization"]:
+        disc_df=discretize.main(config,df)
+
+
 
 
 

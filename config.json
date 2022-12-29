@@ -1,27 +1,31 @@
 {
-    
-    "data_path":"asd.csv",
-    "skip_discretization":"false",
+    "data_path":"MOCK_DATA.csv",
+    "skip_discretization":false,
     "output_dir": "results",
-    "random_state": "0",
+    "random_state": 0,
 
     
-    "labels":"0,3",
-    "n_bins":3,
+    "labels":"2,3,4,7",
+    "n_bins":4,
     "discretizer_strategy":"uniform",
-    "keep_file":"true",
+    "keep_file":true,
 
+
+    "divide_et_impera":true,
+    "dei_n":4,
+
+    "dataset_path":"",
     "strategy":"QA",
     "QA_kwargs": {
-		"reads": "10000",
-		"annealing_time": "99"
-	},
+      "reads": 10000,
+      "annealing_time": 99
+    },
     "bnlearn_kwagrs": {
-		"metrics": "k2",
-		"search_algorithm": "hill_climbing"
-	},
+      "metrics": "k2",
+      "search_algorithm": "hill_climbing"
+    },
 
     "full_Markov_blanket":true,
 
-	"verbose": false
+	"verbose": true
 }
