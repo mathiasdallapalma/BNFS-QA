@@ -1,4 +1,5 @@
 results
-bnfsqa\__pycache__
+
 MOCK_DATA.csv
 install.txt
+*.pyc
