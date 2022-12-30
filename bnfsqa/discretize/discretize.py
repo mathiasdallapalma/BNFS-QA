@@ -31,12 +31,12 @@ def main(config,df):
     dataset_name=dataset_path.split('.')[0]
     output_path=output_dir+'/'+dataset_name+'_'+str(n_bins)+"b.txt"
     
-    common.save_txt(df_disc,dataset_name,output_path)
+    if config["strategy"]=="QA" or config["strategy"]=="SA":
+        common.save_txt(df_disc,dataset_name,output_path)
 
     if(keep_file):
         save_csv(df_disc,dataset_name,output_dir,n_bins)
         
-    
     return df_disc
 
 def discretize(df,labels,n_bins,discretizer_strategy):
