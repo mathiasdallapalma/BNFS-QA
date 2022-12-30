@@ -2,6 +2,8 @@ import logging as log
 import os
 from utils import common
 import pandas as pd
+import subprocess
+from pathlib import Path
 def main(config,df):
     """Learn the bayesian network strutcture of the input dataset
     Parameters
@@ -14,19 +16,43 @@ def main(config,df):
         DAG of Bayesian network. #TODO guarda
     """
     output_dir = config["output_dir"]
+    strategy=config["strategy"]
 
     if config["divide_et_impera"]:
+        if strategy!="QA":
+            log.error("Divide et Impera approach can be used only with QA strategy.")
+            exit(1)
+
         files=divide_et_impera(config,df)
+        for file in files:
+            command="cd ./BNSL-QA-python; python3 -m bnslqa solve "+path+"/"+file+" QA -r 1000"
+
+            result = subprocess.check_output(command, shell=True)
+
+            #reconstruct(fs)
         
         print(files)
 
     else:
         if config["discretize"]:
-            file=config["data_path"].split('.')[0]+'_'+str(config["n_bins"])+"b.txt"
+            file=config["output_dir"]+"/"+config["data_path"].split('.')[0]+'_'+str(config["n_bins"])+"b.txt"
         else:
             file=config["bnsl_data_path"]
 
-        print(file)
+    if strategy=="QA" or strategy=="SA" :
+        print("QA")
+        command="cd ./BNSL-QA-python; python3 -m bnslqa solve %s %s -r %d -a %d"%(file,strategy,config["QA_kwargs"]["reads"],config["QA_kwargs"]["annealing_time"])
+
+        #result = subprocess.check_output(command, shell=True)
+        #print(result)
+        bn=get_solution(1) #TODO prendere soluzione da result
+
+    elif strategy=="bnlearn":
+        print("bn")
+         
+    else:
+        log.error("Unknown strategy, please choose between [QA,SA,bnlearn].")
+        exit(1)
         
     #return
 
@@ -74,7 +100,6 @@ def divide_et_impera(config,df):
         common.save_txt(df1,"{}_{}".format(dataset_name,i),"{}/{}.txt".format(dir,i))
         files+=["divided/{}/{}_{}.txt".format(dataset_name,dataset_name,i)]
 
-
         actual=next
         next+=n
         i+=1
@@ -86,5 +111,7 @@ def divide_et_impera(config,df):
     files+=["divided/{}/{}_{}.txt".format(dataset_name,dataset_name,i)]
 
     return files
+
+
 
         
