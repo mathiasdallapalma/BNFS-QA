@@ -2,6 +2,7 @@
 from utils import common 
 from bnfsqa.discretize import discretize
 from bnfsqa.bnsl import bnsl
+from bnfsqa.markov_blanket import markov_blanket
 
 
 import argparse
@@ -14,8 +15,7 @@ def main():
     parser.add_argument("-f", "--config_file", required=True, type=str)
     args = parser.parse_args()
     
-
-    config,df = common.load_config_and_input_data(args.config_file)
+    config,df,df_disc = common.load_config_and_input_data(args.config_file)
     
     if config["verbose"]:
         log.getLogger().setLevel(log.INFO)
@@ -23,15 +23,15 @@ def main():
     else:
         log.basicConfig(format="%(levelname)s: %(message)s")
 
+    log.getLogger().setLevel(log.DEBUG)
+
     if config["discretize"]:
-        disc_df=discretize.main(config,df)
+        df_disc=discretize.main(config,df)
 
-    bn=bnsl.main(config,disc_df)
-
-
-
-
-        
+    bn=bnsl.main(config,df_disc)
+    log.info(bn)
+    features=markov_blanket.main(config,bn)
+    print(features)
 
 
 if __name__ == '__main__':
