@@ -1,6 +1,6 @@
 {
     "data_path":"MOCK_DATA.csv",
-    "discretize":true,
+    "discretize":false,
     "output_dir": "results",
     "random_state": 0,
 
@@ -14,18 +14,18 @@
     "divide_et_impera":false,
     "dei_n":5,
 
-    "bnsl_data_path":"as",
-    "strategy":"QA",
+    "bnsl_data_path":"/home/met/Documenti/GitHub/BNFS-QA/results/MHP.csv",
+    "strategy":"bnlearn",
     "QA_kwargs": {
       "reads": 10000,
       "annealing_time": 99
     },
     "bnlearn_kwagrs": {
-      "metrics": "k2",
-      "search_algorithm": "hill_climbing"
+      "metric": "k2",
+      "search_algorithm": "hc"
     },
 
-    "full_Markov_blanket":true,
+    "full_Markov_blanket":false,
 
 	"verbose": true
 }
