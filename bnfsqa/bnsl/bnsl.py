@@ -1,9 +1,19 @@
 import logging as log
-import os
-from utils import common
 import pandas as pd
-import subprocess
-from pathlib import Path
+import numpy as np
+import scipy
+import bnlearn 
+import torch
+import os
+
+import sys
+bnslqa_path = os.path.join(os.getcwd(),"BNSL-QA-python")
+sys.path.insert(0, bnslqa_path)
+
+from bnslqa.solvers.qubo_matrix import calcQUBOMatrix                                        
+from bnslqa.solvers.dwave_solver import dwaveSolve
+
+
 def main(config,df):
     """Learn the bayesian network strutcture of the input dataset
     Parameters
@@ -12,49 +22,51 @@ def main(config,df):
         Contains all the parameters for this phase.
     Returns
     -------
-    pd.DataFrame
-        DAG of Bayesian network. #TODO guarda
+    bn: np.ndarray
+        Final Bayesian Network adjency matrix
     """
-    output_dir = config["output_dir"]
+
     strategy=config["strategy"]
 
     if config["divide_et_impera"]:
+        
         if strategy!="QA":
             log.error("Divide et Impera approach can be used only with QA strategy.")
             exit(1)
-
-        files=divide_et_impera(config,df)
-        for file in files:
-            command="cd ./BNSL-QA-python; python3 -m bnslqa solve "+path+"/"+file+" QA -r 1000"
-
-            result = subprocess.check_output(command, shell=True)
-
-            #reconstruct(fs)
         
-        print(files)
 
-    else:
-        if config["discretize"]:
-            file=config["output_dir"]+"/"+config["data_path"].split('.')[0]+'_'+str(config["n_bins"])+"b.txt"
-        else:
-            file=config["bnsl_data_path"]
+        dfs=divide_et_impera(config,df) 
+        bns=[]
+        for df_i in dfs:
+            examples=df_i.values.tolist()
+            states=[]
 
-    if strategy=="QA" or strategy=="SA" :
-        print("QA")
-        command="cd ./BNSL-QA-python; python3 -m bnslqa solve %s %s -r %d -a %d"%(file,strategy,config["QA_kwargs"]["reads"],config["QA_kwargs"]["annealing_time"])
+            for feature in df_i:
+                states+=[len(pd.unique(df_i[feature]))]  
+            bns+=[bnsl_qa(examples, len(df_i.columns), states,strategy,config["QA_kwargs"]["reads"],config["QA_kwargs"]["annealing_time"])]
 
-        #result = subprocess.check_output(command, shell=True)
-        #print(result)
-        bn=get_solution(1) #TODO prendere soluzione da result
+        bn=reconstruct(bns)
 
+    elif strategy=="QA" or strategy=="SA" :
+        examples=df.values.tolist()
+        states=[]
+
+        for feature in df:
+            states+=[len(pd.unique(df[feature]))]  
+
+        bn=bnsl_qa(examples, len(df.columns), states,strategy,config["QA_kwargs"]["reads"],config["QA_kwargs"]["annealing_time"])
+    
     elif strategy=="bnlearn":
-        print("bn")
-         
+        log.info("Retrieving BN structure using bnlearn library")
+        model = bnlearn.structure_learning.fit(df, methodtype=config["bnlearn_kwagrs"]["search_algorithm"], scoretype=config["bnlearn_kwagrs"]["metric"])
+        bn= model['adjmat']
+        bn= bn.astype(int).to_numpy()
+
     else:
         log.error("Unknown strategy, please choose between [QA,SA,bnlearn].")
         exit(1)
         
-    #return
+    return bn
 
 def divide_et_impera(config,df):    
     """Divide the discretized dataset in order to be executed by qa
@@ -83,34 +95,91 @@ def divide_et_impera(config,df):
     elif mod/2<n and mod!=0:
         log.warn("Last group will be combosed by %d features. (Other group are composed by %d features)"%(mod,n))
 
-    dataset_name=config["data_path"].split('.')[0]
-    dir=config["output_dir"]+"/divided/"+dataset_name
-    if not os.path.exists(dir):
-        os.makedirs(dir)
-
     actual=0
     next=n
     i=0
-    files=[]
+    dfs=[]
 
     while next<len(df.columns):
-        df1=pd.concat([df.iloc[:, actual:next],df.iloc[:,-1:]], axis=1)
-        print(df1)
-
-        common.save_txt(df1,"{}_{}".format(dataset_name,i),"{}/{}.txt".format(dir,i))
-        files+=["divided/{}/{}_{}.txt".format(dataset_name,dataset_name,i)]
+        dfs+=[pd.concat([df.iloc[:, actual:next],df.iloc[:,-1:]], axis=1)]
 
         actual=next
         next+=n
         i+=1
     
-    df1=df.iloc[:, actual:len(df.columns)]
-    print(df1)
+    dfs+=[df.iloc[:, actual:len(df.columns)]]
 
-    common.save_txt(df1,"{}_{}".format(dataset_name,i),"{}/{}.txt".format(dir,i))
-    files+=["divided/{}/{}_{}.txt".format(dataset_name,dataset_name,i)]
+    return dfs 
 
-    return files
+def reconstruct(bns):
+    """Reconstruct the complessive solution by joining the divided ones
+    Parameters
+    ----------
+    bns: list of numpy.ndarray
+        Array of partial Bayesian Network matrix
+    Returns
+    -------
+    bn: np.ndarray
+        Final Bayesian Network matrix
+    """
+    last_row=[]
+    last_col=[]
+    bn_0=bns[0]
+    sol=bn_0[:-1,:-1]
+    i=0
+    for bn_i in bns:
+        if(i!=0):
+            sol=scipy.linalg.block_diag(sol, bn_i[:-1,:-1])
+        last_row=np.append(last_row,bn_i[-1,:-1])
+        for r in bn_i[:-1]:
+            last_col+=[r[-1]]
+        i+=1
+            
+    last_col+=[0]
+
+    sol = np.vstack([sol, last_row])
+    sol = np.column_stack((sol, last_col))
+
+    return sol
+
+def bnsl_qa(examples, n, states,method,nReads,annealTime):
+    """Estimates the Bayesian Network's structure using annealing 
+    Parameters
+    ----------
+    examples: list of lists
+        Dataframe of the dataset
+    n : int
+        Number of variables
+    states : list of int
+        Number of states for each variables
+    method : str {QA,SA}
+        Approach used to estimate the structure
+    nReads : int
+        Indicates the number of states (output solutions) to read from the solver
+    annealTime : int
+        Sets the duration of quantum annealing time, per read
+    Returns
+    -------
+    bn: np.ndarray
+        Final Bayesian Network adjency matrix
+    """
+
+    #calculate the QUBO matrix given the dataset path
+    alpha = '1/(ri*qi)'
+    log.info("Calculating the QUBO matrix")
+    Q, indexQUBO, posOfIndex = calcQUBOMatrix(examples,n,states,alpha=alpha)
+    Q = torch.tensor(Q)
+
+    #find minimum of the QUBO problem xt Q x using the specified sampler
+    label=""
+    log.info("Retrieving BN structure using annealing method")
+    minXt,minY,readFound,occurrences,annealTimeRes = dwaveSolve(Q,indexQUBO,posOfIndex,label,method=method,nReads=nReads,annealTime=annealTime)
+
+    narcs = n*(n-1)
+    bn= torch.cat([torch.cat([torch.zeros(n-1).view(-1,1),minXt[:narcs].view(-1,n)],dim=-1).view(-1),torch.zeros(1)]).view(n,n).int()
+    bn=bn.numpy()
+    return bn
+
 
 
 
