@@ -27,13 +27,8 @@ def main(config,df):
 
     df_disc=discretize(df,labels,n_bins,discretizer_strategy)
 
-
     dataset_name=dataset_path.split('.')[0]
-    output_path=output_dir+'/'+dataset_name+'_'+str(n_bins)+"b.txt"
     
-    if config["strategy"]=="QA" or config["strategy"]=="SA":
-        common.save_txt(df_disc,dataset_name,output_path)
-
     if(keep_file):
         save_csv(df_disc,dataset_name,output_dir,n_bins)
         
@@ -68,7 +63,7 @@ def discretize(df,labels,n_bins,discretizer_strategy):
     df[categorical_columns]=df[categorical_columns].apply(preprocessing.LabelEncoder().fit_transform)
     
     discretizer=preprocessing.KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy=discretizer_strategy)
-    df[numerical_columns]=pd.DataFrame(discretizer.fit_transform(df[numerical_columns]), columns = numerical_columns, dtype=int) #funziona
+    df[numerical_columns]=pd.DataFrame(discretizer.fit_transform(df[numerical_columns]), columns = numerical_columns, dtype=int)
 
     log.info("Discretization completed")
 

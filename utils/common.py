@@ -32,47 +32,12 @@ def load_config_and_input_data(config_path):
 
     config_dirname = os.path.dirname(config_path)
     df = pd.read_csv(os.path.join(config_dirname, config['data_path']).replace('\\','/'), index_col=None)
+    df_disc = pd.read_csv(os.path.join(config_dirname, config['bnsl_data_path']).replace('\\','/'), index_col=None)
 
     if not os.path.exists(config["output_dir"]):     
         os.makedirs(config["output_dir"])
 
-    return config,df
+    return config,df,df_disc
 
-def save_txt(df_disc,dataset_name,output_path):
-    """Save the discretize dataframe in a new txt file, used as input for bnslqa
-    Parameters
-    ----------
-    df_disc : pd.DataFrame
-        Discretized dataframe of the dataset.
-    dataset_path: str
-        Path of the original dataset
-    output_dir:str
-        Path where save the new discretized dataset
-    n_bins : int
-        Number of bins
-
-    Returns
-    -------
-    None
-    """
-
-    file_out = open(output_path, 'w')
-
-    lenM=len(df_disc.columns)
-    sol=np.zeros(lenM*(lenM-1),dtype=int)
-        
-    feature_cardinality=[]
-
-    for feature in df_disc:
-        feature_cardinality+=[len(pd.unique(df_disc[feature]))]  
-
-    file_out.write("{} {}\n".format(lenM," ".join(map(str, feature_cardinality))))
-    file_out.write("{}\n".format(dataset_name))
-    file_out.write("{}\n".format(" ".join(map(str, sol))))
-
-    np.savetxt(file_out, df_disc, fmt="%.0f")
-    file_out.close()
-
-    log.info("File saved in : "+output_path)
     
 
