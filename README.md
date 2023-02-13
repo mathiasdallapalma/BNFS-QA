@@ -1,4 +1,4 @@
-# Baesyan Network Feature Selection
+# Baesyan Network Feature Selection (BNFS)
 Feature selection for classification and regression. 
 
 Final application project at Trento University
